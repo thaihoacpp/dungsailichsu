@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Trắc Nghiệm Đúng/Sai</title>
+    <style>
+        :root { --primary: #4a90e2; --success: #4caf50; --error: #f44336; --bg: #f0f2f5; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; color: #444; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { font-size: 1.1rem; color: #2c3e50; line-height: 1.6; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 0; }
+        .row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f0f0f0; transition: 0.3s; }
+        .row:last-child { border-bottom: none; }
+        .row.correct { background: #e8f5e9; }
+        .row.wrong { background: #ffebee; }
+        .content-text { flex: 1; margin-right: 15px; font-size: 0.95rem; color: #34495e; }
+        .options-group { display: flex; gap: 8px; align-items: center; min-width: 150px; justify-content: flex-end; }
+        .btn-opt { padding: 7px 14px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: white; font-size: 0.85rem; }
+        .btn-opt.active-true { background: #27ae60; color: white; border-color: #27ae60; }
+        .btn-opt.active-false { background: #e67e22; color: white; border-color: #e67e22; }
+        .btn-opt:disabled { cursor: default; opacity: 0.8; }
+        .check-btn, .next-btn { margin-top: 25px; width: 100%; padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; font-size: 1rem; transition: 0.3s; }
+        .check-btn { background: #2ecc71; }
+        .check-btn:hover { background: #27ae60; }
+        .next-btn { background: var(--primary); display: none; }
+        .feedback-icon { font-size: 1.1rem; margin-left: 8px; width: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-box">
+    <div class="header">
+        <span id="progress">Đang chuẩn bị...</span>
+        <span id="score-display">Điểm: 0</span>
+    </div>
+    <div id="question-area">
+        <h2 id="question-text"></h2>
+        <div id="sub-questions-container"></div>
+    </div>
+    
+    <button class="check-btn" id="check-btn" onclick="checkAll()">Chấm điểm câu này</button>
+    <button class="next-btn" id="next-btn" onclick="loadNextQuestion()">Tiếp theo</button>
+</div>
+
+<script>
+    // Dữ liệu thô từ file của bạn
+    const rawContent = `Câu 1: Đọc đoạn tư liệu sau đây
+“Dù ai đi ngược về xuôi
+Nhớ ngày giỗ Tổ mùng mười tháng Ba”
+                                                                                                                                  (Ca dao)
+Lễ hội đền Hùng tại Phú Thọ được tổ chức vào ngày 10 tháng Ba âm lịch hằng năm. Đây là dịp người dân Việt Nam tưởng nhớ công lao dựng nước của các Vua Hùng, thể hiện đạo lý truyền thống “uống nước nhớ nguồn” và tinh thần đại đoàn kết. Năm 2012, UNESCO đã ghi danh Tín ngưỡng thờ cúng Hùng Vương là Di sản Văn hóa phi vật thể đại diện của nhân loại
+                                                                              (Sách giáo khoa Lịch sử 10, Bộ cánh diều, tr.55).|a) Đoạn tư liệu trên đã tóm tắt lại một tác phẩm văn học dân gian của nước ta.S|b) Ngày giỗ tổ mùng 10 tháng Ba âm lịch hằng năm nhằm tưởng nhớ công lao của các Vua Hùng được coi là quốc giỗ của dân tộc ta.Đ|c) Ngày giỗ tổ mùng 10 tháng Ba âm lịch lần đầu tiên được tổ chức vào năm 2012 khi tín ngưỡng này được UNESCO ghi danh.S|d) Tín ngưỡng thờ Quốc Tổ Hùng Vương là tín ngưỡng duy nhất của Việt Nam hiện nay đã phát huy cao độ truyền thống “uống nước nhớ nguồn” của dân tộc.S|#
+Câu 1: Đọc đoạn tư liệu sau đây:
+“Khu trung tâm Hoàng thành Thăng Long là quần thể di tích gắn với lịch sử kinh thành Thăng Long, bắt đầu từ thời kì tiền Thăng Long (An Nam đô hộ phủ, thế kỉ VII) qua thời Đinh, Tiền Lê, phát triển mạnh dưới thời Lý, Trần, Lê sơ. Đây là quần thể kiến trúc đồ sộ, được các triều đại xây dựng trong nhiều giai đoạn lịch sử, là minh chứng cho sự phát triển rực rỡ của văn minh Đại Việt trên các lĩnh vực chính trị, kinh tế, văn hóa, giáo dục. Năm 2010, Khu di tích trung tâm Hoàng thành Thăng Long được UNESCO ghi danh là Di sản văn hóa Thế giới.
+                                                                       (Sách giáo khoa Lịch sử 10, bộ cánh diều, tr.68).|a) Thăng Long là kinh đô của nước Đại Việt qua nhiều triều đại phong kiến từ Đinh, Tiền Lê đến Lý, Trần, Lê sơ.S|b) Những dấu tích để lại trong Khu di tích trung tâm Hoàng thành Thăng Long là một cơ sở để tìm hiểu, nghiên cứu về văn minh Đại Việt.Đ|c) Trung tâm Hoàng thành Thăng Long là một quần thể kiến trúc đồ sộ, còn nguyên vẹn đến ngày nay, được công nhận là Di sản văn hóa Thế giới.S|d) Kinh thành Thăng Long là nơi hội tụ tinh hoa văn hóa Đại Việt trên các lĩnh vực kinh tế, chính trị, văn hóa, giáo dục.Đ|#
+Câu 2: Đọc đoạn tư liệu sau đây
+Trong quá trình hình thành và phát triển, người Việt đã tiếp thu có chọn lọc tinh hoa văn minh từ bên ngoài, đặc biệt là văn minh Trung Hoa (thể chế chính trị, luật pháp, chữ viết, tư tưởng Nho giáo, giáo dục, khoa cử,…); văn minh Ấn Độ (Phật giáo, nghệ thuật, kiến trúc,…); văn minh phương Tây (chữ viết, Thiên Chúa giáo,…) góp phần làm phong phú nền văn minh Đại Việt.
+                                                                            (Sách giáo khoa Lịch sử 10, bộ cánh diều, tr.66).|a) Văn minh Đại Việt có sự kết hợp hài hòa giữa các giá trị của văn minh bản địa với các yếu tố du nhập bên ngoài.Đ|b) Việc tiếp thu có chọn lọc tinh hoa văn hóa từ bên ngoài là nhân tố quan trọng hàng đầu dẫn đến sự phát triển rực rỡ của văn minh Đại Việt.S|c) Văn minh Đại Việt đã tiếp thu thành tựu về tôn giáo của cả phương Đông và phương Tây.Đ|d) Cư dân Đại Việt tiếp thu thành tựu về chữ viết duy nhất từ nền văn minh Trung Hoa.S|#
+Câu 3: Đọc đoạn tư liệu sau:
+	“Về chữ viết, trên cơ sở tiếp thu chữ Hán của người Trung Hoa, người Việt đã sáng tạo ra chữ Nôm để ghi lại tiếng nói của dân tộc. Bên cạnh chữ Hán là văn tự chính thống dùng trong thi cử, một số triều đại đã có những chính sách khuyến khích và đề cao chữ Nôm (nhà Hồ, nhà Tây Sơn). Đến thế kỉ XVII, chữ Quốc ngữ được hình thành từ việc sử dụng, cải biến bảng chữ cái La-tinh để ghi âm tiếng Việt và từng bước phát triển, trở thành chữ viết chính thức của người Việt.”
+(SGK Lịch sử 10, Bộ Cánh Diều, trang 76).|a) Người Việt đã sáng tạo ra chữ viết riêng là chữ Nôm trên cơ sở của chữ Hán.Đ|b) Chữ Nôm là văn tự được sử dụng chính của các triều đại phong kiến Đại Việt.S|c) Với sự ra đời của chữ viết riêng, nền văn minh Đại Việt đã được hình thành.S|d) Chữ Quốc ngữ ra đời cùng quá trình du nhập và truyền bá Thiên Chúa giáo.Đ|#
+Câu 4: Đọc đoạn tư liệu sau đây
+Trong Chiếu dời đô, vua Lý Thái Tổ đã nói rõ dời chuyển kinh đô là một việc trọng đại “không thể theo ý riêng tự dời” mà để “mưu nghiệp lớn”, “làm kế cho con cháu muôn vạn đời, trên kính mệnh trời, dưới theo ý dân”. Vua Lý Thái Tổ lúc này đã có một con mắt đại ngàn, một tầm nhìn chiến lược vô cùng hệ trọng đối với vận mệnh lâu dài của dân tộc là chọn thành Đại La – nơi hội tụ đầy đủ mọi điều kiện về kinh tế, chính trị và xã hội làm kinh đô của một quốc gia thống nhất và thịnh vượng.
+(Vũ Duy Mền (Chủ biên), Lịch sử Việt Nam, Tập 2 – Từ thế kỉ X đến thế kỉ XIV, NXB Khoa học xã hội, 2017, tr.154).|a) Khi lên ngôi, vua Lý Thái Tổ đã quyết định cho dời đô từ vùng núi non hiểm trở về trung tâm đồng bằng.Đ|b) Thành Đại La – vốn là kinh đô của một số triều đại phong kiến độc lập của Việt Nam trước đó, là nơi hội tụ mọi điều kiện thuận lợi để phát triển trong điều kiện mới.S|c) Việc dời đô của Lý Thái Tổ chủ yếu xuất phát từ nhu cầu phòng thủ, bảo vệ đất nước.S|d) Việc Lý Công Uẩn rời đô ra Đại La (Hà Nội) đã mở ra thời kì phát triển rực rỡ của văn minh Đại Việt.Đ|#
+Câu 5: Đọc đoạn tư liệu sau đây
+“Văn hóa Lý – Trần – Hồ là giai đoạn phát triển thịnh đạt của văn hóa Đại Việt. Văn hóa Lý – Trần – Hồ đã chủ động khôi phục lại những yếu tố văn hóa Việt cổ, đồng thời cải biến tích hợp những yếu tố văn hóa ngoại sinh, tạo nên một phong cách riêng cho mình. Văn hóa Đại Việt thời Lý – Trần – Hồ, vì thế, đã mang tính dân tộc sâu sắc.
+Cũng dựa trên sự cân bằng văn hóa, văn hóa Lý – Trần – Hồ là sự hỗn dung của dòng văn hóa dân gian vói dòng văn hóa cung đình, giữa những yếu tố bình dân với những yếu tố bác học, giữa Phật – Đạo và Nho. Gam màu nổi bật của văn hóa thời kì này là sự ưu trội của dòng văn hóa dân gian, đan xen vào sinh hoạt văn hóa cung đình, tuy xu thế phát triển của nó là ngả dần sang văn hóa Đông Á Nho giáo. Văn hóa Đại Việt thời Lý – Trần – Hồ đã mang đậm tính dân gian”.
+                  (Nguyễn Quang Ngọc (Chủ biên), Tiến trình lịch sử Việt Nam, NXB Giáo dục, 2007, tr.106).|a) Văn hóa Đại Việt thời kì Lý – Trần – Hồ mang đậm tính dân tộc và tính dân gian.Đ|b) “Tam giáo đồng nguyên” là đặc điểm nổi bật trong đời sống tôn giáo thời Lý – Trần.Đ|c) Văn hóa Lý – Trần – Hồ phát triển thịnh đạt hoàn toàn dựa trên cơ sở khôi phục lại những yếu tố văn hóa truyền thống trước kia.S|d) Dưới thời kì Lý – Trần – Hồ, văn hóa dân gian và văn hóa cung đình có sự hòa hợp với nhau, nhưng văn hóa dân gian vẫn chiếm ưu thế nổi bật.Đ|#
+Câu 6: Đọc đoạn tư liệu sau đây:
+“Bảo đảm các dân tộc bình đẳng, đoàn kết, tôn trọng, giúp nhau cùng phát triển. Huy động phân bổ, sử dụng, quản lý hiệu quả các nguồn lực để đầu tư phát triển, tạo chuyển biến căn bản về kinh tế, văn hóa, xã hội ở vùng có đông đồng bào dân tộc thiểu số. Chú trọng tính đặc thù của từng vùng đồng bào dân tộc thiểu số trong hoạch định và tổ chức thực hiện chính sách dân tộc. Có cơ chế thúc đẩy tính tích cực, ý chí tự lực, tự cường của đồng bào các dân tộc thiểu số phát triển kinh tế - xã hội, thực hiện giảm nghèo đa chiều, bền vững”.
+(Đảng Cộng sản Việt Nam, Văn kiện Đại hội đại biểu toàn quốc lần thứ XIII, Tập 1, NXB Chính trị quốc gia Sự thật, Hà Nội, 2021, tr.170).|a) Nguyên tắc về chính sách dân tộc của Đảng và Nhà nước được nhắc đến trong văn kiện trên là bình đẳng, đoàn kết, tôn trọng, giúp nhau cùng phát triển.Đ|b) Chủ trương của Đảng và Nhà nước về vấn đề dân tộc là huy động và sử dụng hiệu quả mọi nguồn lực để phát triển một cách toàn diện những vùng có đông đồng bào dân tộc thiểu số.Đ|c) Trong chính sách phát triển kinh tế - xã hội chung của cả nước thì việc phát triển kinh tế sao cho phù hợp với đặc điểm của từng vùng là điều khó khả thi và không được đề cập đến ở văn kiện.S|d) Trong chính sách phát triển dân tộc, Đảng và Nhà nước đề cao tính tích cực, chủ động, tự quyết và tự trị của đồng bào các dân tộc thiểu số.S|#
+Câu 6: Đọc đoạn tư liệu sau:
+	“Các dân tộc thiểu số cư trú trên địa bàn rộng lớn, có vị trí chiến lược đặc biệt quan trọng về chính trị, kinh tế, an ninh, quốc phòng và bảo vệ môi trường sinh thái. Vùng dân tộc và miền núi nước ta chiếm gần 3/4 diện tích tự nhiên, bao gồm 21 tỉnh miền núi vùng cao, 23 tỉnh có miền núi và 10 tỉnh đồng bằng có đồng bào các dân tộc thiểu số sinh sống. Suốt dọc biên giới phía Bắc và phía Tây có nhiều cửa ngõ thông thương giữa nước ta với các nước láng giềng trong khu vực và trên thế giới.”
+(Ban chỉ đạo Đại hội đại biểu các dân tộc thiểu số Việt Nam:
+Cộng đồng các dân tộc Việt Nam, Nxb Giáo dục, 2010, trang 6).|a) Việt Nam là quốc gia có nhiều dân tộc cùng sinh sống trên hầu khắp các vùng của cả nước.Đ|b) Các dân tộc thiểu số ở Việt Nam cư trú ở những địa bàn có vị trí chiến lược rất quan trọng.Đ|c) Các dân tộc thiểu số ở Việt Nam đã mở nhiều cửa ngõ giao thương với các nước láng giềng.S|d) Chính sách dân tộc của Đảng, Nhà nước Việt Nam là đảm bảo quyền tự trị cho các dân tộc.S|#
+Câu 7: Đọc đoạn tư liệu sau.
+	“Vấn đề dân tộc và đoàn kết các dân tộc có vị trí chiến lược lâu dài trong sự nghiệp cách mạng nước ta. Các dân tộc trong đại gia đình Việt Nam bình đẳng, đoàn kết, tôn trọng và giúp đỡ nhau cùng tiến bộ; cùng nhau thực hiện thắng lợi sự nghiệp công nghiệp hóa, hiện đại hóa đất nước, xây dựng và bảo vệ Tổ quốc Việt Nam xã hội chủ nghĩa. Phát triển kinh tế, chăm lo đời sống vật chất và tinh thần, xóa đói giảm nghèo, nâng cao trình độ dân trí, giữ gìn và phát huy bản sắc văn hóa, tiếng nói, chữ viết và truyền thống tốt đẹp của các dân tộc.”
+(Văn kiện Đại hội Đại biểu Toàn quốc lần thứ X của Đảng Cộng sản Việt Nam).|a) Vấn đề đại đoàn kết dân tộc có vị trí chiến lược trong xây dựng và bảo vệ Tổ quốc.Đ|b) Các dân tộc ở Việt Nam đều bình đẳng, đoàn kết và giúp đỡ nhau cùng tiến bộ.Đ|c) Các dân tộc đều có quyền lợi và nghĩa vụ riêng, sử dụng tiếng nói chữ viết riêng.S|d) Chính sách nhất quán của Đảng và Nhà nước là phát triển kinh tế, văn hóa dân tộc.Đ|#`;
+
+    let questions = [];
+    let currentIdx = 0;
+    let totalScore = 0;
+    let userChoices = [];
+    let currentShuffledSubs = [];
+
+    function parseData() {
+        const blocks = rawContent.split('#');
+        questions = blocks.map(block => {
+            const lines = block.trim().split('|');
+            if (lines.length < 2) return null;
+            
+            const title = lines[0].trim();
+            const subs = lines.slice(1).filter(l => l.trim() !== "").map(line => {
+                const cleanLine = line.trim();
+                // Lấy ký tự cuối cùng làm đáp án (Đ hoặc S)
+                const ansChar = cleanLine.slice(-1).toUpperCase();
+                // Bỏ phần "a) " ở đầu và " Đ" ở cuối
+                const text = cleanLine.substring(2, cleanLine.length - 1).trim();
+                return { text: text, ans: (ansChar === 'Đ') };
+            });
+            return { title, subs };
+        }).filter(q => q !== null);
+        
+        questions.sort(() => Math.random() - 0.5);
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const q = questions[currentIdx];
+        document.getElementById("progress").innerText = `Câu ${currentIdx + 1} / ${questions.length}`;
+        document.getElementById("question-text").innerText = q.title;
+        
+        const container = document.getElementById("sub-questions-container");
+        container.innerHTML = "";
+        
+        // Xáo trộn vị trí a, b, c, d
+        currentShuffledSubs = [...q.subs].sort(() => Math.random() - 0.5);
+        userChoices = new Array(currentShuffledSubs.length).fill(null);
+        
+        const labels = ['a', 'b', 'c', 'd', 'e', 'f'];
+
+        currentShuffledSubs.forEach((sub, i) => {
+            const div = document.createElement("div");
+            div.className = "row";
+            div.innerHTML = `
+                <div class="content-text"><strong>${labels[i]})</strong> ${sub.text}</div>
+                <div class="options-group">
+                    <button class="btn-opt" onclick="setChoice(this, ${i}, true)">Đúng</button>
+                    <button class="btn-opt" onclick="setChoice(this, ${i}, false)">Sai</button>
+                    <span class="feedback-icon" id="fb-${i}"></span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        
+        document.getElementById("check-btn").style.display = "block";
+        document.getElementById("next-btn").style.display = "none";
+    }
+
+    function setChoice(btn, idx, val) {
+        const group = btn.parentElement;
+        group.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active-true', 'active-false'));
+        btn.classList.add(val ? 'active-true' : 'active-false');
+        userChoices[idx] = val;
+    }
+
+    function checkAll() {
+        if (userChoices.includes(null)) {
+            alert("Bạn chưa chọn hết các ý Đúng/Sai!");
+            return;
+        }
+
+        const rows = document.querySelectorAll(".row");
+        let roundScore = 0;
+
+        userChoices.forEach((choice, i) => {
+            const isCorrect = (choice === currentShuffledSubs[i].ans);
+            const fb = document.getElementById(`fb-${i}`);
+            
+            if (isCorrect) {
+                rows[i].classList.add("correct");
+                fb.innerText = "✓";
+                fb.style.color = "#27ae60";
+                roundScore++;
+            } else {
+                rows[i].classList.add("wrong");
+                fb.innerText = "✕";
+                fb.style.color = "#c0392b";
+            }
+        });
+
+        totalScore += roundScore;
+        document.getElementById("score-display").innerText = `Điểm: ${totalScore}`;
+        document.getElementById("check-btn").style.display = "none";
+        document.getElementById("next-btn").style.display = "block";
+        document.querySelectorAll('.btn-opt').forEach(b => b.disabled = true);
+    }
+
+    function loadNextQuestion() {
+        currentIdx++;
+        if (currentIdx < questions.length) {
+            renderQuestion();
+        } else {
+            alert("Hoàn thành! Tổng điểm của bạn: " + totalScore);
+            location.reload();
+        }
+    }
+
+    parseData();
+</script>
+</body>
+</html>
